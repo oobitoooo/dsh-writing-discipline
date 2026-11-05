@@ -2,6 +2,13 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [0.2.1] — 2026-11-05
+
+### Added
+
+- docs/CREDITS.md：给两个来源明确署名——dsh-plugin-writing-guard（@xmutfyh，MIT，设计原型，未复制代码）与
+  nti-defensive-writing skill（本项目前身，四项机制直接演化而来）。README 中英文版同步增加「致谢 / Credits」段。
+
 ## [0.2.0] — 2026-11-05
 
 从配套 skill `anti-defensive-writing` 借来四样东西（详见 `docs/DESIGN.md` §9）：

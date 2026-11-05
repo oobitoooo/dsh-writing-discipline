@@ -75,6 +75,13 @@ if (!c.ok) throw new Error('factual layer changed: ' + c.items.filter(i => i.sev
 - Conservation is heuristic: `840 ms` and `840ms` count as different tokens; the claim ladder covers a fixed verb set. It's a seatbelt, not a brake.
 - Text in, text out. For `.docx` / `.pdf`, extract first.
 
+## Credits
+
+Two sources, see [docs/CREDITS.md](docs/CREDITS.md):
+
+- **[@xmutfyh](https://github.com/xmutfyh) — [dsh-plugin-writing-guard](https://github.com/xmutfyh/dsh-plugin-writing-guard)** (MIT): the design prototype. Rule tiers, density gating, the "this may carry a legitimate function, don't auto-delete" candidate judgement, profile-based strictness, and the principle that polishing must not move scientific facts. **No code was copied** — rules and implementation are independent.
+- **The `anti-defensive-writing` skill** (this workspace, 2026-11-05): the project's earlier form. Its before/after table, `--max-warn`, runnable entry point, and pre-delivery checklist became `EXAMPLES`, `maxWarn`, `wd-lint`, and `CHECKLIST`.
+
 ## Development
 
 ```bash

@@ -1,6 +1,6 @@
 {
   "name": "dsh-writing-discipline",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "写作纪律闸门：检测并清除防御性写作（免责、自我贬低、说教劝退、软对冲、过程旁白、元评论），带守恒锁（改写不得动数字/引用/否定/主张强度）与确定性改写器。零网络、零 LLM、纯本地正则与统计。",
   "type": "module",
   "main": "lib/index.js",

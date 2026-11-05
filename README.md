@@ -211,6 +211,13 @@ if (!c.ok) throw new Error('改写破坏了事实层：' + c.items.filter(i => i
 
 ---
 
+## 致谢
+
+这个插件的判定模型站在两个人的肩膀上，完整说明见 [docs/CREDITS.md](docs/CREDITS.md)：
+
+- **[@xmutfyh](https://github.com/xmutfyh) — [dsh-plugin-writing-guard](https://github.com/xmutfyh/dsh-plugin-writing-guard)**（MIT）：设计原型。规则分层、密度门控、「可能承担正当功能，勿自动删」的 candidate 判定、按文档类型调严格度、改写不许改科学事实——这几条都是从它那里看清的。**没有复制任何代码**，规则与实现全部独立编写；我在本机装过它做过行为对照。
+- **`anti-defensive-writing` skill**（本工作区，2026-11-05）：本项目的前身形态。前后对照表、`--max-warn`、可执行入口、交付前自检清单四项直接演化成了 `EXAMPLES` / `maxWarn` / `wd-lint` / `CHECKLIST`。
+
 ## 开发
 
 ```bash
