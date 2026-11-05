@@ -36,7 +36,7 @@ No postinstall script, no disk writes, no config mutation. Works on DSH `0.1.x` 
 
 | Tool | What it does |
 |---|---|
-| `wd_scan` | Full lint: 26 rules + 3 density rules, ERROR/WARN/INFO, per-hit line/paragraph/action |
+| `wd_scan` | Full lint: 24 rules + 3 density rules, ERROR/WARN/INFO, per-hit line/paragraph/action |
 | `wd_rules` | Rule table with the effective severity under a given profile |
 | `wd_rewrite` | Deterministic cleanup: strip lead-ins, collapse hedge stacking, drop pure-defensive sentences. **Never deletes a sentence containing a number, citation, figure reference, or URL** |
 | `wd_conservation` | Diff lock: numbers / citations / figure refs / DOIs / URLs must survive; claim strength must not be upgraded (`may → causes`); negation must not flip; scope words must not vanish |

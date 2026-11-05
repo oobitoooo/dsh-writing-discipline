@@ -78,7 +78,7 @@ dsh plugin --profile desktop add github:oobitoooo/dsh-writing-discipline
 
 ### `wd_rules` — 规则速查
 
-列出 26 条规则 + 3 条密度规则在指定 profile 下的实际严重度。写作前扫一眼，比写完再改便宜。
+列出 24 条规则 + 3 条密度规则在指定 profile 下的实际严重度。写作前扫一眼，比写完再改便宜。
 
 ### `wd_rewrite` — 确定性改写
 
