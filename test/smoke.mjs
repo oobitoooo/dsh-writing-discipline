@@ -1,6 +1,6 @@
 // smoke test — 纯 node:assert，无外部依赖
 import assert from 'node:assert/strict'
-import { scan, rewrite, conservation, stats, rulesBrief, RULES, VERSION } from '../lib/rules.js'
+import { scan, rewrite, conservation, stats, rulesBrief, formatReport, RULES, EXAMPLES, CHECKLIST, VERSION } from '../lib/rules.js'
 
 let pass = 0
 const failures = []
@@ -163,6 +163,42 @@ test('全部正则都能编译', () => {
 
 test('版本号存在', () => {
   assert.match(VERSION, /^\d+\.\d+\.\d+$/)
+})
+
+test('WARN 预算：maxWarn 生效且不影响 ERROR 判定', () => {
+  const text = '这个方案可能有效。' // 只有 WARN
+  const loose = scan(text, { profile: 'report' })
+  const strict = scan(text, { profile: 'report', maxWarn: 0 })
+  assert.equal(loose.ok, true, '默认不限预算应通过')
+  assert.equal(strict.ok, false, 'WARN 1 > 预算 0 应不通过')
+  assert.equal(strict.counts.error, 0, 'ERROR 数仍为 0')
+  assert.equal(strict.warnBudget, 0)
+})
+
+test('铺垫式开头被识别', () => {
+  const r = scan('随着人工智能技术的快速发展，越来越多的团队开始使用自动化工具。', { profile: 'report' })
+  assert.ok(r.hits.some((h) => h.ruleId === 'structure.preamble'), '应命中 structure.preamble')
+  const r2 = scan('构建耗时 14 分钟，其中 62% 在依赖解析。', { profile: 'report' })
+  assert.equal(r2.hits.filter((h) => h.ruleId === 'structure.preamble').length, 0)
+})
+
+test('报告带改写示例（✗ / ✓ 对照）', () => {
+  const r = scan('作为一个AI助手，我无法保证准确。', { profile: 'chat' })
+  const out = formatReport(r, { verbose: true })
+  assert.ok(out.includes('✗'), '应输出去掉前的反例')
+  assert.ok(out.includes('✓'), '应输出改后的正例')
+  const silent = formatReport(r, { verbose: false })
+  assert.ok(!silent.includes('✗'), 'verbose=false 时不输出对照')
+})
+
+test('示例表没有孤儿 key，自检清单 6 条', () => {
+  const ids = new Set(RULES.map((r) => r.id))
+  for (const key of Object.keys(EXAMPLES)) {
+    assert.ok(ids.has(key) || key.startsWith('density.'), `EXAMPLES 里 ${key} 没有对应规则`)
+    assert.ok(EXAMPLES[key].before && EXAMPLES[key].after, `${key} 的示例不完整`)
+  }
+  assert.equal(CHECKLIST.length, 6)
+  assert.ok(rulesBrief('chat').checklist.length === 6)
 })
 
 // ---- 汇总 ----

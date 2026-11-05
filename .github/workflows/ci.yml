@@ -20,6 +20,13 @@ jobs:
         run: node --check lib/index.js && node --check lib/rules.js
       - name: smoke tests
         run: node test/smoke.mjs
+      - name: cli smoke (exit 0 on clean, 1 on dirty)
+        run: |
+          node bin/wd-lint.mjs -q README.md
+          if node bin/wd-lint.mjs -q -t "本内容仅供参考，不构成任何建议。"; then
+            echo "::error::dirty text should fail the gate"; exit 1
+          fi
+          node bin/wd-lint.mjs --json -q -t "P95 从 840 ms 降到 210 ms（n=12000）。" | head -5
       - name: self-lint README
         run: |
           node -e "

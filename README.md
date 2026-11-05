@@ -61,7 +61,7 @@ dsh plugin --profile desktop add github:oobitoooo/dsh-writing-discipline
 ### `wd_scan` — 扫描
 
 ```jsonc
-{ "text": "……", "profile": "chat", "severityMin": "warn", "verbose": true }
+{ "text": "……", "profile": "chat", "severityMin": "warn", "maxWarn": 3, "verbose": true }
 // 或 { "filePath": "docs/report.md" }
 ```
 
@@ -78,7 +78,7 @@ dsh plugin --profile desktop add github:oobitoooo/dsh-writing-discipline
 
 ### `wd_rules` — 规则速查
 
-列出 25 条规则 + 3 条密度规则在指定 profile 下的实际严重度。写作前扫一眼，比写完再改便宜。
+列出 26 条规则 + 3 条密度规则在指定 profile 下的实际严重度。写作前扫一眼，比写完再改便宜。
 
 ### `wd_rewrite` — 确定性改写
 
@@ -116,6 +116,38 @@ dsh plugin --profile desktop add github:oobitoooo/dsh-writing-discipline
 
 ---
 
+## 命令行（CI / pre-commit）
+
+插件不只在对话里能用，也带一个独立 CLI——装了包就有 `wd-lint`：
+
+```bash
+wd-lint README.md docs/DESIGN.md      # 多文件
+cat x.md | wd-lint -                  # stdin
+wd-lint -t "本内容仅供参考。"           # 直接测一段
+wd-lint -m 3 src/                     # WARN 预算 3
+wd-lint --json x.md                   # JSON，给 CI 解析
+wd-lint --fix x.md                    # 就地改写（原文件存 .bak）
+wd-lint --diff before.md after.md     # 守恒锁：两版事实是否漂移
+```
+
+退出码：`0` 通过 ／ `1` 有 ERROR 或超出 WARN 预算 ／ `2` 用法或 IO 错误。
+
+**WARN 预算**是给存量项目用的：一开始必然一堆 WARN，直接卡死没人会开。先清到 ERROR=0，再把预算从 20 一周周压到 0——`wd-lint -m 3` 就是「这周最多容忍 3 个 WARN」。
+
+pre-commit 示例：
+
+```yaml
+- repo: local
+  hooks:
+    - id: writing-discipline
+      name: writing discipline
+      entry: wd-lint -m 0
+      language: node
+      types: [markdown, text]
+```
+
+---
+
 ## 判定分级
 
 | 级别 | 含义 | CI 策略 |
@@ -142,7 +174,7 @@ dsh plugin --profile desktop add github:oobitoooo/dsh-writing-discipline
 | 防御性 | 能力自贬、拒绝式措辞、道歉、自我评价、免责类、防御性声明、推责专业人士、合规姿态 |
 | 元评论 | 社交尾巴、开场白、过程旁白、反问请示、修改过程残留 |
 | 对冲 | 中文信使词、英文信使词、模糊程度词、**限定词堆叠（ERROR）** |
-| 文体 | 绝对化、填充开头、中文套话、英文套话、不是X而是Y、元评论开场白 |
+| 文体 | 绝对化、填充开头、中文套话、英文套话、不是X而是Y、元评论开场白、**铺垫式开头** |
 | 密度 | **段落软对冲 ≥3 处且 0 处量化数据 → ERROR**、破折号 >6‰、超长句（中 >55 字 / 英 >34 词） |
 
 密度规则是这套工具和普通禁词表的关键差别：单个 `可能` 不是问题，**一段里三个 `可能` 且一个数字都没有**才是问题。
