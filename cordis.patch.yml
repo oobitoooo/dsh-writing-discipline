@@ -1,0 +1,6 @@
+# dsh-writing-discipline —— bundle 挂载声明
+# DSH 启动时按 bundle 层栈叠加，把本插件的 5 个工具注册进当前 profile。
+- insert:
+    - id: dsh-writing-discipline
+      name: 'dsh-writing-discipline'
+      inject: [tools]

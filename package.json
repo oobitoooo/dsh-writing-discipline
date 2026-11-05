@@ -1,0 +1,60 @@
+{
+  "name": "dsh-writing-discipline",
+  "version": "0.1.0",
+  "description": "写作纪律闸门：检测并清除防御性写作（免责、自我贬低、说教劝退、软对冲、过程旁白、元评论），带守恒锁（改写不得动数字/引用/否定/主张强度）与确定性改写器。零网络、零 LLM、纯本地正则与统计。",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./rules": "./lib/rules.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "docs",
+    "README.md",
+    "README.en.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "check": "node --check lib/index.js && node --check lib/rules.js",
+    "test": "node test/smoke.mjs",
+    "bench": "node test/bench.mjs"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-tools": ">=0.1.0",
+    "@deepseek-ai/cordis": ">=3.0.0"
+  },
+  "devDependencies": {},
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "writing",
+    "defensive-writing",
+    "hedging",
+    "lint",
+    "style",
+    "chinese",
+    "prompt-discipline"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/oobitoooo/dsh-writing-discipline.git"
+  },
+  "homepage": "https://github.com/oobitoooo/dsh-writing-discipline#readme",
+  "bugs": {
+    "url": "https://github.com/oobitoooo/dsh-writing-discipline/issues"
+  },
+  "license": "MIT"
+}
