@@ -1,12 +1,14 @@
 {
   "name": "dsh-writing-discipline",
-  "version": "0.2.1",
-  "description": "写作纪律闸门：检测并清除防御性写作（免责、自我贬低、说教劝退、软对冲、过程旁白、元评论），带守恒锁（改写不得动数字/引用/否定/主张强度）与确定性改写器。零网络、零 LLM、纯本地正则与统计。",
+  "version": "0.3.0",
+  "description": "写作纪律闸门：扫描防御性写作与模型味（破折号过密、「不是X而是Y」、软对冲、免责、过程旁白），带事实守恒锁、确定性改写器与 present 前交付闸门（按内容 sha256 记账，未过扫或扫完又改文件一律拦下）。支持 .docx/.pptx/.xlsx 直接抽取。零网络、零 LLM、纯本地正则与统计。",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
     ".": "./lib/index.js",
     "./rules": "./lib/rules.js",
+    "./gate": "./lib/gate.js",
+    "./extract": "./lib/extract.js",
     "./package.json": "./package.json"
   },
   "bin": {
@@ -17,6 +19,7 @@
     "bin",
     "cordis.patch.yml",
     "docs",
+    "skills",
     "README.md",
     "README.en.md",
     "LICENSE",
@@ -31,8 +34,8 @@
     "node": ">=18"
   },
   "scripts": {
-    "check": "node --check lib/index.js && node --check lib/rules.js && node --check bin/wd-lint.mjs",
-    "test": "node test/smoke.mjs",
+    "check": "node --check lib/index.js && node --check lib/rules.js && node --check lib/gate.js && node --check lib/extract.js && node --check bin/wd-lint.mjs",
+    "test": "node test/smoke.mjs && node test/gate.mjs",
     "bench": "node test/bench.mjs"
   },
   "peerDependencies": {
@@ -50,7 +53,9 @@
     "lint",
     "style",
     "chinese",
-    "prompt-discipline"
+    "prompt-discipline",
+    "gate",
+    "docx"
   ],
   "repository": {
     "type": "git",

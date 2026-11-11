@@ -2,6 +2,34 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [0.3.0] — 2026-11-12
+
+把一个「要你记得调用」的扫描器，改成「你忘了也拦得住」的闸门。起因很具体：一份 8 页课程作业，
+插件装在本机、工具就在手边，但第一版从头到尾没被扫过一次——初扫才发现 ERROR 1 / WARN 11、
+破折号密度 8.9‰、六处「不是X而是Y」。工具没失效，是流程没闭环。
+
+### Added
+
+- **交付闸门（gate）**：`present` 前按文件内容 **sha256** 校验，未扫描 / 扫描后仍有 ERROR / 扫描后又改过文件，一律 `deny`，
+  拒绝理由里直接给出该文件的 `wd_scan` 命令。文件一改指纹即变，旧通行证自动失效。
+  - 挂在两处：`tools/pre-execute`（主判定，异步、校验指纹）+ `ctx.tools.guard`（同步兜底，防其他监听器改名放行）。
+  - `.pdf` 认源文件：同目录同名 `.docx/.pptx/.xlsx/.md/.tex` 通过扫描即放行。
+  - 非文档（图片、数据、压缩包）不拦。配置 `gate: 'block' | 'warn' | 'off'`。
+- **Office 文本抽取 `lib/extract.js`**：零依赖解析 ZIP 中央目录 + `zlib.inflateRawSync`，
+  直接读 `.docx/.docm/.pptx/.pptm/.xlsx/.xlsm` 的正文（含表格单元格），`wd_scan` / `wd_stats` / `wd_conservation` 全部受益。
+  不再需要「先写个 python 抽文本、再复制进 text 参数」。
+- **常驻规则段（systemPrompt.section）**：把「交付前 ERROR 必须归零、按 sha256 记账、被拦时的标准动作」写进系统提示，
+  不依赖 skill 是否被加载。
+- **`wd_gate` 工具**：`status` 看记账与模式、`check` 预检某文件会不会被拦、`reset` 清账（外部工具重写文件后强制重扫）。
+- **配套 skill `skills/writing-discipline/SKILL.md`**：写前三步流程、闸门行为表、六条高频返工点、
+  与 `anti-defensive-writing` 的分工（前者管语气谦卑，后者管句式套路，两套都要过）。
+
+### Changed
+
+- `inject` 从 `['tools']` 扩到 `['tools', 'systemPrompt']`。
+- `readInput` 统一走 `extractText`，扩展名白名单增加 Office 格式；不支持的类型给出可执行提示。
+- `wd_scan` 在传 `filePath` 时回一行「闸门：已记账 / 已记账但未通过」，让记账状态对 agent 可见。
+
 ## [0.2.1] — 2026-11-05
 
 ### Added

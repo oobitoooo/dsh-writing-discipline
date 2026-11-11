@@ -1,6 +1,7 @@
 # dsh-writing-discipline —— bundle 挂载声明
-# DSH 启动时按 bundle 层栈叠加，把本插件的 5 个工具注册进当前 profile。
+# DSH 启动时按 bundle 层栈叠加，把本插件的工具与交付闸门注册进当前 profile。
+# systemPrompt 用于挂常驻规则段（交付前 ERROR 必须归零），tools 用于注册 6 个工具。
 - insert:
     - id: dsh-writing-discipline
       name: 'dsh-writing-discipline'
-      inject: [tools]
+      inject: [tools, systemPrompt]
