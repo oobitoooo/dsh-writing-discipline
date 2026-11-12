@@ -20,7 +20,11 @@
 - **locale 参数**：uto（中文占比 ≥30% 自动启用）/ zh / en；wd_scan、wd-lint -l 均可指定。
 - **profile 扩展**：gov / 	ech / support / marketing / media 五个中文语域。
 - wd_rules 增加中文层段落，按当前 profile 列出生效的中文规则。
-- docs/ZH.md：分层理由、23 条规则表、误报取舍、指标读法。
+- docs/ZH.md：分层理由、规则表、误报取舍、指标读法、同类实现对照与待办。
+  - **结构与节奏（对照同期插件补的三条）**：三连排比（zh.structure.trinity）、空转转折（连续段首转折词）、
+    列表疲劳（条目占正文 >50%）；以及句长变异系数 <0.25 的「节奏过于均匀」（借鉴 baiguangda-style 的段落均匀判据）。
+  - docs/ZH.md 增加「同类实现对照」：baiguangda-style / avoid-ai-writing-cn / humanizer / no-ai-style / cot-lint，
+    逐条写明借了什么、为什么没借，以及四件待办。
 
 ### Changed
 

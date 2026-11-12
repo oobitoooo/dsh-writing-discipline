@@ -295,6 +295,29 @@ test('rulesBrief 输出中文语域层', () => {
   assert.ok(Object.keys(b.zh.profiles).includes('gov'))
 })
 
+test('中文结构：句长过于均匀触发 WARN，参差句长不触发', () => {
+  const flat = scan('系统完成了升级。性能得到了提升。体验变得更加流畅。用户反馈非常良好。整体感觉不错。', { profile: 'report' })
+  assert.ok(flat.hits.some((h) => h.ruleId === 'zh-density.uniform-rhythm'), '均匀句长应命中')
+  const varied = scan('升级完成。P95 从 840 ms 降到 210 ms，用户能感觉到，尤其是在列表页首屏这种有大量图片的场景里。接着看夜间指标。', { profile: 'report' })
+  assert.equal(varied.hits.some((h) => h.ruleId === 'zh-density.uniform-rhythm'), false, '参差句长不该命中')
+})
+
+test('中文结构：三连排比与连续转折', () => {
+  const tri = scan('这套方案不仅提升了效率，而且降低了成本，更重塑了团队协作方式。', { profile: 'report' })
+  assert.ok(tri.hits.some((h) => h.ruleId === 'zh.structure.trinity'))
+  const turns = scan('然而，方案A更贵。\n但是，方案B更慢。\n不过，方案C没人维护。', { profile: 'report' })
+  assert.ok(turns.hits.some((h) => h.ruleId === 'zh.structure.empty-transition'))
+  const single = scan('完成了迁移。但是仍有一台机器没切。', { profile: 'report' })
+  assert.equal(single.hits.some((h) => h.ruleId === 'zh.structure.empty-transition'), false, '单个转折不该报')
+})
+
+test('中文结构：列表疲劳，且序数不算数字混排', () => {
+  const list = '- 第一项内容\n- 第二项内容\n- 第三项内容\n- 第四项内容\n- 第五项内容\n- 第六项内容\n- 第七项内容\n- 第八项内容\n'
+  const r = scan(list, { profile: 'report' })
+  assert.ok(r.hits.some((h) => h.ruleId === 'zh.structure.list-fatigue'))
+  assert.equal(r.hits.some((h) => h.ruleId === 'zh.num.mixed'), false, '「第二项」是序数，不该判数字混排')
+})
+
 // ---- 汇总 ----
 const total = pass + failures.length
 if (failures.length) {

@@ -43,6 +43,17 @@
 | `zh.hedge.classical` | WARN · TIGHTEN | `恐怕 / 兴许 / 未必 / 或多或少` |
 | `zh.hedge.discourse` | WARN · CUT | `从某种意义上说 / 就目前而言` |
 
+### 结构与节奏
+
+| id | 判定 | 触发条件 |
+|---|---|---|
+| `zh.structure.trinity` | WARN · REFRAME | 不仅…而且…更 / 既要…又要…还要 / 一方面…另一方面…同时 |
+| `zh.structure.empty-transition` | WARN · CUT | 连续 2 段以「然而/但是/不过/尽管如此」开头 |
+| `zh.structure.list-fatigue` | INFO · REVIEW | 条目行占正文 >50%（且正文 ≥8 行） |
+| `zh-density.uniform-rhythm` | WARN · REFRAME | 句长变异系数 <0.25（且 ≥5 句） |
+
+`uniform-rhythm` 是本轮新增里最有意思的一条：真人写作的句长参差（长句铺开、短句收口），生成式文本的句长分布异常整齐。用变异系数（标准差 / 均值）判定，比"平均句长"更能抓住这个特征。
+
 ### 语域专属
 
 | id | 语域 | 判定 |
@@ -84,6 +95,7 @@
 | 按字句长 | 均值 >25 或最长 >60 就该拆句 |
 | 逗号链 | 最大值 ≥5 说明有句子在堆判断 |
 | 「的」链 | 单句 ≥3 个「的」，回读成本上升 |
+| 句长变异系数 | <0.25 说明每句都差不多长——播报腔，不是人写的节奏 |
 | 被字句 | 数量突增通常是抽象写作（"问题被解决了"→"解决了问题"） |
 | 半角标点 | 中文句子里出现 `,;:?` 的数量，应为 0 |
 
@@ -110,7 +122,32 @@ wd-lint -p marketing -l en 文案.md   // 关闭中文层做对照
 `locale`：`auto`（默认，中文占比 ≥30% 自动启用）/ `zh`（强制）/ `en`（关闭）。
 
 ## 8. 两套规则怎么配合
-
 - 中文层管**语域失配**：公文腔出现在技术文档、营销话术出现在工单回复、含糊量出现在方案。
 - 通用层管**跨语言的写作病**：免责、自贬、对冲、元评论、破折号过密。
 - 同一段文本两层都跑，命中会分 kind 标注（`zh-gov` / `zh-support` / `zh-redundancy` / `zh-punct` / `zh-hedge`），便于在报告里按原因分组，而不是糊成一坨"有问题"。
+
+## 9. 同类实现对照（2026-11 生态盘点）
+
+做中文层之前先横向看了一遍同生态的实现。可行的借鉴与放弃都记在这里，避免以后重复讨论。
+
+| 项目 | 机制 | 借了什么 / 为什么没借 |
+|---|---|---|
+| `dsh-plugin-baiguangda-style` ★1<br><https://github.com/BroWhitebyte/dsh-plugin-baiguangda-style> | 4 条硬错误 + 27 条警告；阈值按 **444 篇 / 80.2 万字**语料标定；含「段落过于均匀」「孤证数字」「金句通胀」 | **借了「段落/句长过于均匀」**，做成 `zh-density.uniform-rhythm`（变异系数 <0.25）。语料标定这件事很有说服力，但本插件面向通用文本、拿不到同分布语料，暂用经验值并在文档写明 |
+| `avoid-ai-writing-cn` ★8<br><https://github.com/hellogit2021/avoid-ai-writing-cn> | 说「去掉 AI 味」即重写；说「写的不错」自动把新词记入规避表 | 反馈驱动词表增长是最值得学的一条，但需要用户交互信号才能落地，本轮未做（见下节待办） |
+| `dsh-humanizer` ★12<br><https://github.com/lynote-ai/dsh-humanizer> | 8 个确定性工具 + 从样本提取文风指纹 + 改写 brief | 文风指纹与本项目 `styleProfile` 思路一致；本轮只做了「句长分布」这一个维度的指纹（CV + 标准差），完整指纹留待后续 |
+| `no-ai-style` ★6<br><https://github.com/01NGVI-QINGYI/no-ai-style> | 三档：检查 / 润色 / 起草；**起草不补充材料外的事实** | 「起草不许补事实」与守恒锁同源，已由 `wd_conservation` 覆盖；三档模式未做，本项目的等价物是 `profile` + `severityMin` |
+| `cot-lint` ★2<br><https://github.com/YuanyuanMa03/cot-lint> | 扫 AI 留在文档里的会话残留：死设计引用、PR 视角、变更叙述、评审编排 | 已覆盖「变更叙述」（`meta.process-residue`），「死设计引用 / 评审编排」未覆盖，列入待办 |
+| `dsh-plugin-writing-guard` ★46<br><https://github.com/xmutfyh/dsh-plugin-writing-guard> | 控制上下文不是稿件内容；argument economy；defensive-purpose test | 设计原型，见 [CREDITS.md](CREDITS.md)。它的「每条句子必须挣得位置」判据写进了 `CHECKLIST` |
+
+**没借的三类**（记下来省得反复权衡）：
+
+1. **让模型判断"这句像不像 AI"**：不确定输出进不了 CI，本项目的立身之本就是确定性。
+2. **不透明的总分/百分比**：`baiguangda` 那类「AI 味指数 7.2/10」看着直观，但无法定位到句子，也没法告诉人改哪里。本项目只报行号、命中片段和改写方向。
+3. **把公文/客服/营销判成错误**：语域本身没有对错，错的是用错场合。所以这三类只在与语域匹配时给出提示，而不是全局禁词。
+
+## 10. 待办（按价值排序）
+
+1. **用户词表**：`~/.dsh/writing-discipline/zh-learned.json`，`wd_scan` 自动加载；支持「这句写得不对」→ 记一条。对应 `avoid-ai-writing-cn` 的反馈闭环。
+2. **会话残留扩展**：把 `cot-lint` 的「死设计引用（我最初考虑的方案A）」「评审编排（下面给一个结论）」补进 `meta.process-residue`。
+3. **语料标定脚本**：`tools/calibrate.mjs` 对指定目录跑分位数，输出阈值建议，替代当前的拍脑袋数字。
+4. **完整文风指纹**：句长 + 逗号链 + 「的」链 + 被字句四个维度做基线，扫描时报告偏离度。
