@@ -16,10 +16,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - name: syntax check
-        run: node --check lib/index.js && node --check lib/rules.js
+      - name: syntax check (all entry points)
+        run: |
+          for f in lib/index.js lib/rules.js lib/zh.js lib/learn.js lib/gate.js lib/extract.js \
+                   bin/wd-lint.mjs tools/calibrate.mjs; do
+            node --check "$f" || exit 1
+          done
       - name: smoke tests
         run: node test/smoke.mjs
+      - name: learned lexicon tests
+        run: node test/learn.mjs
+      - name: delivery gate tests
+        run: node test/gate.mjs
       - name: cli smoke (exit 0 on clean, 1 on dirty)
         run: |
           node bin/wd-lint.mjs -q README.md
@@ -27,13 +35,25 @@ jobs:
             echo "::error::dirty text should fail the gate"; exit 1
           fi
           node bin/wd-lint.mjs --json -q -t "P95 从 840 ms 降到 210 ms（n=12000）。" | head -5
-      - name: self-lint README
+      - name: zh register smoke (gov / tech / support)
+        run: |
+          node bin/wd-lint.mjs -q -p gov -t "现将有关事项通知如下：请遵照执行。" || true
+          node bin/wd-lint.mjs -q -p tech -t "重构后性能得到明显提升。" > /dev/null && {
+            echo "::error::vague performance claim should fail under tech profile"; exit 1; }
+      - name: calibrate dry-run
+        run: node tools/calibrate.mjs docs README.md --min-chars 120 | tail -12
+      - name: self-lint docs
         run: |
           node -e "
           import('./lib/rules.js').then(m => {
             const fs = require('fs');
-            const r = m.scan(fs.readFileSync('README.md', 'utf8'), { profile: 'readme' });
-            const errs = r.hits.filter(h => h.severity === 'error');
-            console.log('README hits:', r.counts, 'ok:', r.ok);
-            if (errs.length) { console.error(m.formatReport(r)); process.exit(1); }
+            let bad = 0;
+            for (const f of ['README.md', 'docs/ZH.md', 'docs/DESIGN.md', 'CHANGELOG.md', 'skills/writing-discipline/SKILL.md']) {
+              try {
+                const r = m.scan(fs.readFileSync(f, 'utf8'), { profile: 'readme' });
+                console.log(f, r.counts, 'ok:', r.ok);
+                if (r.counts.error) bad++;
+              } catch (e) { console.error(f, e.message); bad++; }
+            }
+            if (bad) { console.error('文档自检未通过'); process.exit(1); }
           })"

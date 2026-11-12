@@ -104,12 +104,12 @@ for (const k of metrics) {
 const d = result.distributions
 result.thresholds = {
   'zh-density.long-sentence (单句字数)': {
-    current: 60,
+    current: 66,
     suggestWarn: Math.round(d.maxSentenceZh.p90),
     suggestError: Math.round(d.maxSentenceZh.p99),
   },
   'zh-density.comma-chain (单句逗号数)': {
-    current: 5,
+    current: 6,
     suggestWarn: Math.max(3, Math.round(d.commaChainMax.p90)),
     suggestError: Math.max(4, Math.round(d.commaChainMax.p99)),
   },
