@@ -38,8 +38,12 @@ jobs:
       - name: zh register smoke (gov / tech / support)
         run: |
           node bin/wd-lint.mjs -q -p gov -t "现将有关事项通知如下：请遵照执行。" || true
-          node bin/wd-lint.mjs -q -p tech -t "重构后性能得到明显提升。" > /dev/null && {
-            echo "::error::vague performance claim should fail under tech profile"; exit 1; }
+          # 技术语域下「性能得到明显提升」必须被判失败；用 if 包住，避免命令自身的非零退出码弄挂整个 step
+          if node bin/wd-lint.mjs -q -p tech -t "重构后性能得到明显提升。"; then
+            echo "::error::vague performance claim should fail under tech profile"
+            exit 1
+          fi
+          echo "zh register smoke passed"
       - name: calibrate dry-run
         run: node tools/calibrate.mjs docs README.md --min-chars 120 | tail -12
       - name: self-lint docs
