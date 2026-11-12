@@ -30,6 +30,8 @@ jobs:
         run: node test/gate.mjs
       - name: fingerprint tests
         run: node test/fingerprint.mjs
+      - name: lab (browser) core parity
+        run: node test/lab-core.mjs
       - name: cli smoke (exit 0 on clean, 1 on dirty)
         run: |
           node bin/wd-lint.mjs -q README.md

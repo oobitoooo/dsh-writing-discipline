@@ -316,6 +316,15 @@ node tools/report.mjs 新稿.md --out 像不像你.html
 
 **它不打分，也不判好坏。** 你写得比平时好，它也会说「偏离」——那时候忽略就行。它同样**不能证明一段文字是不是 AI 写的**，只能告诉你离你自己有多远。
 
+### 上传稿子，换一份「写作说明书」
+
+不用命令行。双击打开 [`tools/fingerprint-lab.html`](tools/fingerprint-lab.html)，把几篇你自己写的 txt / md 拖进去（也可以直接粘贴），页面当场算出你的习惯，给两样东西：
+
+1. **一段可以直接发给 AI 的要求**——一句话几个字、最长多少、逗号上限、常用词、不要写什么。复制就走。
+2. **`baseline.json`**——下载后丢进 `~/.dsh/writing-discipline/`，插件之后的 `wd_profile compare` 就用这份基线。
+
+全程在浏览器里算，不上传、不联网，也没有任何外部依赖。算法和 `lib/fingerprint.js` 是同一套阈值，`test/lab-core.mjs` 会拿两边对拍，防止改一边忘了另一边。
+
 ---
 
 ## 接 CI

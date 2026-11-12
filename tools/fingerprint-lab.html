@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>文风样本采集 · 写作说明书</title>
+<style>
+  :root { --fg:#1a1a1a; --dim:#6b6b6b; --line:#e6e6e6; --bg:#faf9f7; --ok:#2f7d4f; --warn:#b07b1e; --bad:#b3402f; --accent:#2f5d8a; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font:16px/1.75 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; }
+  main { max-width:860px; margin:0 auto; padding:56px 24px 120px; }
+  .kicker { font-size:13px; letter-spacing:.12em; color:var(--dim); text-transform:uppercase; }
+  h1 { font-size:34px; line-height:1.35; margin:10px 0 8px; font-weight:650; }
+  .sub { color:var(--dim); margin:0 0 36px; }
+  .drop { border:2px dashed #d6d1c9; border-radius:16px; padding:38px 24px; text-align:center;
+          background:#fff; transition:.15s; cursor:pointer; }
+  .drop.hot { border-color:var(--accent); background:#f4f7fb; }
+  .drop p { margin:6px 0; }
+  .drop .hint { font-size:13px; color:var(--dim); }
+  textarea { width:100%; min-height:120px; margin-top:14px; padding:14px 16px; border:1px solid var(--line);
+             border-radius:12px; font:inherit; resize:vertical; background:#fff; }
+  .files { margin:16px 0 0; font-size:14px; color:var(--dim); }
+  .files li { margin:2px 0; }
+  button { font:inherit; padding:11px 20px; border-radius:10px; border:1px solid var(--line);
+           background:#fff; cursor:pointer; margin:6px 8px 0 0; }
+  button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  section.card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:24px 26px; margin:22px 0; }
+  section.card h2 { font-size:20px; margin:0 0 4px; }
+  .lead { color:#333; margin:0 0 18px; }
+  .kv { display:flex; justify-content:space-between; padding:9px 0; border-top:1px dashed var(--line); font-size:15px; }
+  .kv:first-of-type { border-top:none; }
+  .kv b { font-weight:600; }
+  .kv span { color:var(--dim); }
+  .bars { display:flex; align-items:flex-end; gap:3px; height:92px; padding-bottom:6px; border-bottom:1px solid var(--line); margin-top:8px; }
+  .bars i { display:block; width:5px; border-radius:2px; background:#c9c6c1; }
+  .legend { font-size:12px; color:var(--dim); margin-top:8px; }
+  #brief { width:100%; min-height:230px; font:13px/1.7 ui-monospace,Consolas,monospace;
+           background:#f7f6f3; border:1px solid var(--line); border-radius:12px; padding:16px; margin-top:12px; }
+  .hidden { display:none; }
+  .tag { display:inline-block; padding:2px 9px; border-radius:99px; font-size:12px; background:#eef1f4; color:#40536b; margin:2px 6px 2px 0; }
+  .note { font-size:13px; color:var(--dim); margin-top:10px; }
+  footer { margin-top:56px; font-size:12px; color:#aaa; }
+</style>
+</head>
+<body>
+<main>
+  <div class="kicker">文风样本采集</div>
+  <h1>把你的字喂进来，我给你一份「写作说明书」</h1>
+  <p class="sub">不用整理格式。丢几篇你自己写的东西，它统计你说话的习惯，然后给出一份能直接交给 AI 的要求。</p>
+
+  <div class="drop" id="drop">
+    <p><b>把文件拖到这里</b>，或者点一下选文件</p>
+    <p class="hint">支持 .txt / .md，可以一次选多个。Word 请先另存为 txt。</p>
+    <input type="file" id="picker" multiple accept=".txt,.md,.markdown,.tex,.rst" class="hidden">
+  </div>
+  <textarea id="paste" placeholder="也可以直接粘贴：比如几段你以前发过的长消息、邮件、周报，段与段之间空一行。"></textarea>
+  <div class="files" id="filelist"></div>
+  <div><button class="primary" id="go" disabled>开始分析</button></div>
+
+  <section class="card hidden" id="result">
+    <h2 id="verdict">你的写作说明书</h2>
+    <p class="lead" id="lead"></p>
+    <div id="kvs"></div>
+    <div class="bars" id="bars"></div>
+    <div class="legend">上面这些竖条是你句子的大致长短，越高字越多。参差说明你长短句混着用，齐平说明你句句一个长度。</div>
+    <div id="pets" style="margin-top:16px"></div>
+    <div class="note" id="samplenote"></div>
+  </section>
+
+  <section class="card hidden" id="briefcard">
+    <h2>交给 AI 的写作要求</h2>
+    <p class="lead">复制下面这段，发给任何 AI，它就能按你的习惯写。</p>
+    <textarea id="brief" readonly></textarea>
+    <div>
+      <button class="primary" id="copy">复制这段要求</button>
+      <button id="download">下载 baseline.json（给插件用）</button>
+      <button id="restart">换一批样本</button>
+    </div>
+    <div class="note" id="dlnote"></div>
+  </section>
+
+  <footer>全部在你的浏览器里算，不上传、不联网。算法与 dsh-writing-discipline 的指纹模块同一套阈值。</footer>
+</main>
+
+<script id="core">
+/* ===== 文风指纹核心（与 lib/fingerprint.js 同阈值，浏览器版） ===== */
+function zhMetrics(text) {
+  const src = String(text ?? '');
+  const clean = src.replace(/\s+/g, '');
+  const zhChars = (src.match(/[\u4e00-\u9fa5]/g) || []).length;
+  const latin = (src.match(/[A-Za-z]/g) || []).length;
+  const sentences = src.split(/[。！？!?；;\n]+/).map(s => s.trim()).filter(Boolean);
+  const lens = sentences.map(s => (s.match(/[\u4e00-\u9fa5]/g) || []).length);
+  const commaChains = sentences.map(s => (s.match(/[，,]/g) || []).length);
+  const deCounts = sentences.map(s => (s.match(/的/g) || []).length);
+  const avg = lens.length ? lens.reduce((a, b) => a + b, 0) / lens.length : 0;
+  const variance = lens.length ? lens.reduce((a, b) => a + (b - avg) ** 2, 0) / lens.length : 0;
+  const std = Math.sqrt(variance);
+  return {
+    zhRatio: zhChars + latin === 0 ? 0 : zhChars / (zhChars + latin),
+    zhChars,
+    sentences: sentences.length,
+    avgSentenceZh: Number(avg.toFixed(1)),
+    sentenceLenStd: Number(std.toFixed(2)),
+    sentenceLenCV: Number((avg ? std / avg : 0).toFixed(3)),
+    maxSentenceZh: lens.length ? Math.max(...lens) : 0,
+    commaChainMax: commaChains.length ? Math.max(...commaChains) : 0,
+    deChainMax: deCounts.length ? Math.max(...deCounts) : 0,
+    passiveBei: (src.match(/被/g) || []).length,
+    chars: clean.length,
+    lens
+  };
+}
+
+function proseOnly(text) {
+  const out = []; let fence = false;
+  for (const line of String(text).split('\n')) {
+    if (/^\s*(```|~~~)/.test(line)) { fence = !fence; continue; }
+    if (fence) continue;
+    const t = line.trim();
+    if (!t) { out.push(''); continue; }
+    if (/^[#>|*+-]\s|^\d+[.、)]\s|^\||^!\[|^\[/.test(t)) continue;
+    if (/^[\x00-\x7F\s]+$/.test(t)) continue;
+    out.push(t);
+  }
+  return out.join('\n');
+}
+
+const FILLER = /[的了着过是在有就也都很大再还又才把让给对向从和与或]/;
+const STOP = new Set(['我们','你们','他们','这个','那个','这些','那些','一个','可以','就是','不是','因为','所以','但是','如果','然后','现在','已经','还是','这样','那样','什么','没有','需要','应该','可能','其实','而且','或者','以及','对于','关于','通过']);
+function petWords(text, limit) {
+  const clean = String(text).replace(/[^\u4e00-\u9fa5]/g, ' ');
+  const counts = new Map();
+  for (const run of clean.split(/\s+/)) {
+    for (let i = 0; i + 2 <= run.length; i++) {
+      const g = run.slice(i, i + 2);
+      if (g.length < 2 || STOP.has(g)) continue;
+      counts.set(g, (counts.get(g) || 0) + 1);
+    }
+  }
+  return [...counts.entries()].filter(([w, n]) => n >= 2 && !FILLER.test(w)).sort((a, b) => b[1] - a[1]).slice(0, limit || 12).map(([w, n]) => ({ w, n }));
+}
+
+function quantile(sorted, q) {
+  if (!sorted.length) return 0;
+  const pos = (sorted.length - 1) * q, lo = Math.floor(pos), hi = Math.ceil(pos);
+  return lo === hi ? sorted[lo] : sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+}
+const median = arr => quantile([...arr].sort((a, b) => a - b), 0.5);
+
+function exemplarSentence(text) {
+  const sents = String(text).split(/[。！？!?\n]+/).map(s => s.trim()).filter(s => (s.match(/[\u4e00-\u9fa5]/g) || []).length >= 6);
+  if (!sents.length) return '';
+  const lens = sents.map(s => (s.match(/[\u4e00-\u9fa5]/g) || []).length);
+  const target = median(lens);
+  let best = sents[0], bestDiff = Infinity;
+  sents.forEach((s, i) => { const d = Math.abs(lens[i] - target); if (d < bestDiff) { bestDiff = d; best = s; } });
+  return best.slice(0, 60);
+}
+
+function buildFingerprintFromTexts(texts) {
+  const rows = [];
+  const allPet = new Map();
+  for (const raw of texts) {
+    const prose = proseOnly(raw);
+    const m = zhMetrics(prose);
+    if (m.zhChars < 60 || m.sentences < 4) continue;
+    rows.push({ text: prose, m });
+    for (const p of petWords(prose, 40)) allPet.set(p.w, (allPet.get(p.w) || 0) + p.n);
+  }
+  if (rows.length < 2) {
+    return { ok: false, reason: `有效的样本只有 ${rows.length} 份，至少需要 2 份（每份中文 60 字以上、4 句以上）。` };
+  }
+  const pick = k => rows.map(r => r.m[k]);
+  const pack = arr => {
+    const s = [...arr].sort((a, b) => a - b);
+    return { median: Number(median(s).toFixed(2)), p10: Number(quantile(s, 0.1).toFixed(2)), p90: Number(quantile(s, 0.9).toFixed(2)) };
+  };
+  return {
+    ok: true,
+    samples: rows.length,
+    metrics: {
+      avgSentenceZh: pack(pick('avgSentenceZh')),
+      sentenceLenCV: pack(pick('sentenceLenCV')),
+      commaChainMax: pack(pick('commaChainMax')),
+      deChainMax: pack(pick('deChainMax')),
+      passivePer1000: pack(rows.map(r => (r.m.passiveBei / Math.max(1, r.m.chars)) * 1000))
+    },
+    petWords: [...allPet.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12).map(([w, n]) => ({ w, n })),
+    exemplar: exemplarSentence(rows[Math.floor(rows.length / 2)].text),
+    sentenceLens: rows.flatMap(r => r.m.lens).slice(0, 60)
+  };
+}
+</script>
+
+<script>
+const $ = id => document.getElementById(id);
+let samples = [];
+
+const drop = $('drop'), picker = $('picker'), paste = $('paste'), go = $('go'), filelist = $('filelist');
+
+drop.addEventListener('click', () => picker.click());
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('hot'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('hot'));
+drop.addEventListener('drop', async e => {
+  e.preventDefault(); drop.classList.remove('hot');
+  await addFiles([...e.dataTransfer.files]);
+});
+picker.addEventListener('change', async e => { await addFiles([...e.target.files]); e.target.value = ''; });
+
+async function addFiles(files) {
+  for (const f of files) {
+    if (f.size > 2 * 1024 * 1024) { alert(f.name + ' 太大了（超过 2MB）'); continue; }
+    const text = await f.text();
+    samples.push({ name: f.name, text });
+  }
+  refresh();
+}
+paste.addEventListener('input', refresh);
+
+function refresh() {
+  const pasted = paste.value.trim();
+  const list = samples.map(s => s.name);
+  if (pasted) list.push('（粘贴的内容）');
+  filelist.innerHTML = list.length ? '<ul>' + list.map(n => '<li>' + n + '</li>').join('') + '</ul>' : '';
+  const total = samples.length + (pasted ? 1 : 0);
+  go.disabled = total < 1;
+  go.textContent = total ? `开始分析（${total} 份）` : '开始分析';
+}
+
+go.addEventListener('click', () => {
+  const texts = samples.map(s => s.text);
+  if (paste.value.trim()) texts.push(paste.value);
+  const fp = buildFingerprintFromTexts(texts);
+  if (!fp.ok) { alert(fp.reason); return; }
+  render(fp, texts);
+});
+
+function render(fp, texts) {
+  const avg = fp.metrics.avgSentenceZh.median;
+  const cv = fp.metrics.sentenceLenCV.median;
+  const comma = fp.metrics.commaChainMax.p90;
+  const de = fp.metrics.deChainMax.p90;
+  const passive = fp.metrics.passivePer1000.median;
+
+  $('verdict').textContent = `你的写作说明书（${fp.samples} 份样本）`;
+  $('lead').textContent = `你一句话大约 ${avg} 个字，长短${cv >= 0.5 ? '参差，读着自然' : '比较齐，像播报'}。下面是照着这份习惯写出来的样子。`;
+
+  $('kvs').innerHTML = [
+    ['一句话多长', `${Math.round(fp.metrics.avgSentenceZh.p10)}–${Math.round(fp.metrics.avgSentenceZh.p90)} 字，平均 ${avg}`],
+    ['最长的句子', `不超过 ${Math.max(...fp.sentenceLens)} 字`],
+    ['长短混用程度', `${cv}（${cv >= 0.6 ? '很好，继续' : cv >= 0.4 ? '还行' : '太整齐了'}）`],
+    ['一句话最多几个逗号', `${comma} 个`],
+    ['一句话最多几个「的」', `${de} 个`],
+    ['被动句', passive < 1 ? '几乎不用' : `每千字约 ${passive.toFixed(1)} 次`]
+  ].map(([k, v]) => `<div class="kv"><b>${k}</b><span>${v}</span></div>`).join('');
+
+  const maxH = 92, maxLen = Math.max(...fp.sentenceLens, 1);
+  $('bars').innerHTML = fp.sentenceLens.map(n => `<i style="height:${Math.max(6, Math.round(n / maxLen * maxH))}px" title="${n} 字"></i>`).join('');
+
+  $('pets').innerHTML = fp.petWords.length
+    ? '<div style="font-size:13px;color:var(--dim);margin-bottom:6px">你反复用的词</div>' +
+      fp.petWords.slice(0, 10).map(p => `<span class="tag">${p.w}</span>`).join('')
+    : '<div style="font-size:13px;color:var(--dim)">没有特别高频的词</div>';
+
+  $('samplenote').textContent = `样本：${fp.samples} 份｜原型句：${fp.exemplar}`;
+
+  const brief = [
+    `请按以下写作习惯写，不要改成书面腔：`,
+    ``,
+    `- 一句话 ${Math.round(fp.metrics.avgSentenceZh.p10)}–${Math.round(fp.metrics.avgSentenceZh.p90)} 个字，平均 ${avg} 字；最长不要超过 ${Math.max(...fp.sentenceLens)} 字。`,
+    cv >= 0.5 ? `- 长短句要混着来（参差度 ${cv}），不要每句一样长。` : `- 你偏短句、句子偏齐（参差度 ${cv}），保持这个节奏，别突然写长句。`,
+    `- 一句话最多 ${comma} 个逗号，超过就拆句。`,
+    `- 一句话最多 ${de} 个「的」，少用长定语。`,
+    passive < 1 ? `- 少用被动句，直接说谁做了什么。` : `- 被动句控制在每千字 ${passive.toFixed(1)} 次以内。`,
+    fp.petWords.length ? `- 这些词可以自然使用：${fp.petWords.slice(0, 8).map(p => p.w).join('、')}。` : ``,
+    `- 不用「值得注意的是」「综上所述」「赋能」「闭环」这类词。`,
+    `- 不写免责声明、不写自我评价、不对读者说教。`,
+    ``,
+    `风格参考（我自己写的）：`,
+    fp.exemplar
+  ].filter(Boolean).join('\n');
+  $('brief').value = brief;
+
+  const baseline = {
+    version: 1,
+    createdAt: new Date().toISOString(),
+    samples: fp.samples,
+    files: texts.slice(0, 10).map((_, i) => 'sample-' + (i + 1)),
+    metrics: fp.metrics,
+    petWords: fp.petWords,
+    exemplar: fp.exemplar
+  };
+  $('download').onclick = () => {
+    const blob = new Blob([JSON.stringify(baseline, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'baseline.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    $('dlnote').textContent = '已下载。把它放到 C:\\Users\\<你>\\.dsh\\writing-discipline\\baseline.json，插件就能用这份基线审稿。';
+  };
+
+  $('result').classList.remove('hidden');
+  $('briefcard').classList.remove('hidden');
+  $('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+$('copy').addEventListener('click', async () => {
+  const txt = $('brief').value;
+  try { await navigator.clipboard.writeText(txt); $('dlnote').textContent = '已复制，直接粘给 AI 即可。'; }
+  catch { $('brief').select(); document.execCommand('copy'); $('dlnote').textContent = '已复制（兼容模式）。'; }
+});
+
+$('restart').addEventListener('click', () => {
+  samples = []; paste.value = ''; refresh();
+  $('result').classList.add('hidden');
+  $('briefcard').classList.add('hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+refresh();
+</script>
+</body>
+</html>
