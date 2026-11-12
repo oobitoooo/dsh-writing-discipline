@@ -4,6 +4,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { scan, rewrite, conservation, stats, formatReport, PROFILES } from '../lib/rules.js'
+import { learnedForScan } from '../lib/learn.js'
 
 const USAGE = `wd-lint — 防御性写作检查（零依赖，零网络）
 
@@ -21,6 +22,7 @@ const USAGE = `wd-lint — 防御性写作检查（零依赖，零网络）
   -m, --max-warn <n>     WARN 预算，超过即失败（默认不限）
   -s, --severity-min     info|warn|error（默认 error 才失败，报告仍全量输出）
       --stats            只输出指标
+      --no-learned       忽略用户词表（默认加载 ~/.dsh/writing-discipline/learned.json）
       --json             JSON 输出
   -q, --quiet            只输出最终结论
   -h, --help             本帮助
@@ -29,7 +31,7 @@ const USAGE = `wd-lint — 防御性写作检查（零依赖，零网络）
 `
 
 function parseArgs(argv) {
-  const o = { files: [], text: null, json: false, quiet: false, fix: false, diff: null, stats: false, profile: 'unknown', locale: 'auto', maxWarn: null, severityMin: 'info' }
+  const o = { files: [], text: null, json: false, quiet: false, fix: false, diff: null, stats: false, profile: 'unknown', locale: 'auto', maxWarn: null, severityMin: 'info', noLearned: false }
   for (let i = 0; i < argv.length; i++) {
     let a = argv[i]
     // 与 python 版一致：允许 -file 这种单横线写法
@@ -71,6 +73,9 @@ function parseArgs(argv) {
         break
       case '--stats':
         o.stats = true
+        break
+      case '--no-learned':
+        o.noLearned = true
         break
       case '--diff': {
         const before = argv[++i]
@@ -154,6 +159,12 @@ if (o.fix) {
   }
 }
 
+let autoLearned = { rules: [], suppressRules: [] }
+try {
+  autoLearned = learnedForScan()
+} catch {
+  autoLearned = { rules: [], suppressRules: [] }
+}
 let failed = false
 const reports = []
 for (const { label, text } of inputs) {
@@ -163,7 +174,7 @@ for (const { label, text } of inputs) {
     else if (!o.quiet) console.log(`${label}: 字符 ${s.chars}｜中文 ${s.zhChars}｜英文 ${s.enWords}｜段 ${s.paragraphs}｜句 ${s.sentences}｜平均句长 ${s.avgSentence}｜对冲密度 ${s.hedgePer1000}‰`)
     continue
   }
-  const r = scan(text, { profile: o.profile, locale: o.locale, severityMin: o.severityMin, maxWarn: o.maxWarn })
+  const r = scan(text, { profile: o.profile, locale: o.locale, severityMin: o.severityMin, maxWarn: o.maxWarn, extraRules: o.noLearned ? [] : autoLearned.rules, suppressRules: o.noLearned ? [] : autoLearned.suppressRules })
   if (!r.ok) failed = true
   if (o.json) {
     reports.push({ label, ...r })

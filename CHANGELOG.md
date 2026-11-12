@@ -12,13 +12,13 @@
 - **中文层 lib/zh.js**：23 条中文规则 + 2 条中文密度规则 + 中文指标。
   - 通用（所有语域）：名词化冗余、被…所、长「的」链、约…左右/超过…以上、空心修饰、抽象名词堆叠、
     半角标点混入中文、连续感叹号、省略号写法、数字混排、文言式对冲、话语填充。
-  - 语域专属：gov（公文程式语 INFO、口号串、法规援引含糊）、	ech（含糊性能 **ERROR**、模糊量）、
+  - 语域专属：gov（公文程式语 INFO、口号串、法规援引含糊）、tech（含糊性能 **ERROR**、模糊量）、
     support（亲/宝子、客服套话）、marketing（绝对化 **ERROR**、虚假紧迫感）、media（钩子开头、情绪收尾）。
   - 规则按 scopes 过滤：通用 profile（chat/report/...）只跑与语域无关的规则，技术报告不会被判成公文。
 - **中文密度**：单句逗号 ≥5、单句汉字 ≥60。
 - **中文指标**：中文占比、按字句长、最长句、逗号链、『的』链、被字句、半角标点数，随 wd_stats 输出。
 - **locale 参数**：uto（中文占比 ≥30% 自动启用）/ zh / en；wd_scan、wd-lint -l 均可指定。
-- **profile 扩展**：gov / 	ech / support / marketing / media 五个中文语域。
+- **profile 扩展**：gov / tech / support / marketing / media 五个中文语域。
 - wd_rules 增加中文层段落，按当前 profile 列出生效的中文规则。
 - docs/ZH.md：分层理由、规则表、误报取舍、指标读法、同类实现对照与待办。
   - **结构与节奏（对照同期插件补的三条）**：三连排比（zh.structure.trinity）、空转转折（连续段首转折词）、
@@ -26,6 +26,18 @@
   - docs/ZH.md 增加「同类实现对照」：baiguangda-style / avoid-ai-writing-cn / humanizer / no-ai-style / cot-lint，
     逐条写明借了什么、为什么没借，以及四件待办。
 
+- **用户词表 `wd_learn`（lib/learn.js）**：把误报记成条目而不是关掉整条规则。两种模式——`suppress`（默认，
+  命中片段前后 20 字内匹配到就丢掉该条命中）与 `rule`（主动加规则）。存 `~/.dsh/writing-discipline/learned.json`，
+  可用 `WD_LEARNED_FILE` 覆盖；`wd_scan` 与 `wd-lint` 自动加载，`wd-lint --no-learned` 可关闭。
+- **会话残留扩展**：`meta.process-residue` 增加死设计引用（「最初考虑用…」「最终选择了方案B」）、
+  决策旁白（「我选择了…」）、评审编排（「下面先给出结论」）——对照 cot-lint 的泄漏类型。
+- **语料标定 `tools/calibrate.mjs`**：对目录递归统计句长/逗号链/「的」链/变异系数的分位数，输出阈值建议与 JSON，
+  用数据替代拍脑袋。
+
+### Changed
+
+- **密度阈值按语料重新标定**：单句 60 → **66 字**，逗号链 5 → **6**（34 份中文语料 p90 = 66 / 6.4，p99 = 71 / 14.0）。
+  首版 60 落在 p75–p90 之间，会把正常长句标红。完整分布见 docs/ZH.md 附录 A。
 ### Changed
 
 - stats() 返回值增加 zh 字段（中文指标）；scan() 返回值增加 locale 与 zh。

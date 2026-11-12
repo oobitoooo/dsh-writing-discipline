@@ -87,7 +87,7 @@ dsh plugin --profile desktop add github:oobitoooo/dsh-writing-discipline
 
 ---
 
-## 五个工具
+## 七个工具
 
 ### `wd_scan` — 扫描
 
@@ -144,6 +144,19 @@ dsh plugin --profile desktop add github:oobitoooo/dsh-writing-discipline
 ### `wd_stats` — 指标
 
 字符 / 中文词数 / 英文词数 / 段落 / 句数 / 平均句长 / 对冲密度（每千语言单位）/ 破折号密度。改写前后各跑一次，数字会说话。
+
+### `wd_learn` — 用户词表（处理误报）
+
+内置规则误报时，别整条关掉——记一条反例，下次自动放行：
+
+```jsonc
+{ "action": "add", "phrase": "这个方案可能有效", "label": "这句是我要的写法" }   // 默认 suppress：压制误报
+{ "action": "add", "phrase": "赋能矩阵", "mode": "rule", "severity": "error" }   // 或加成主动规则
+{ "action": "list" }   // 看现有条目
+{ "action": "remove", "id": "user.21ff2332" }
+```
+
+存在 `~/.dsh/writing-discipline/learned.json`（纯 JSON，可审计、可进 git、可回滚）。`suppress` 的判定范围是命中片段前后 20 字——不是一个词压掉整行。
 
 ---
 

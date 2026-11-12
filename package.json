@@ -17,6 +17,7 @@
   "files": [
     "lib",
     "bin",
+    "tools",
     "cordis.patch.yml",
     "docs",
     "skills",
@@ -36,7 +37,8 @@
   "scripts": {
     "check": "node --check lib/index.js && node --check lib/rules.js && node --check lib/gate.js && node --check lib/extract.js && node --check bin/wd-lint.mjs",
     "test": "node test/smoke.mjs && node test/gate.mjs",
-    "bench": "node test/bench.mjs"
+    "test:learn": "node test/learn.mjs",
+    "calibrate": "node tools/calibrate.mjs"
   },
   "peerDependencies": {
     "@deepseek-ai/dsh-tools": ">=0.1.0",
