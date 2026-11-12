@@ -1,6 +1,6 @@
 {
   "name": "dsh-writing-discipline",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "写作纪律闸门：扫描防御性写作与模型味（破折号过密、「不是X而是Y」、软对冲、免责、过程旁白），带事实守恒锁、确定性改写器与 present 前交付闸门（按内容 sha256 记账，未过扫或扫完又改文件一律拦下）。支持 .docx/.pptx/.xlsx 直接抽取。零网络、零 LLM、纯本地正则与统计。",
   "type": "module",
   "main": "lib/index.js",

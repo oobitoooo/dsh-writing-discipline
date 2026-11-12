@@ -201,6 +201,100 @@ test('示例表没有孤儿 key，自检清单 6 条', () => {
   assert.ok(rulesBrief('chat').checklist.length === 6)
 })
 
+// ---------------- 中文语域层 ----------------
+import { ZH_RULES, ZH_PROFILES, zhMetrics, isZhText, zhRulesFor } from '../lib/zh.js'
+
+test('中文层：gov 语域命中公文程式语（INFO，公文里属合规）', () => {
+  const r = scan('为深入贯彻落实有关要求，现将有关事项通知如下：请遵照执行。', { profile: 'gov' })
+  const hit = r.hits.find((h) => h.ruleId === 'zh.gov.notice-formula')
+  assert.ok(hit, '应命中 zh.gov.notice-formula；实际: ' + [...new Set(r.hits.map((h) => h.ruleId))].join(','))
+  assert.equal(hit.severity, 'info')
+  assert.equal(r.locale, 'zh')
+})
+
+test('中文层：support 语域命中客服套话，且不误报自我贬低', () => {
+  const r = scan('亲爱的用户，您好！感谢您的理解与支持，如有疑问请联系客服。', { profile: 'support' })
+  const ids = new Set(r.hits.map((h) => h.ruleId))
+  assert.ok(ids.has('zh.support.service-formula'), '应命中客服套话')
+  assert.equal(ids.has('defensive.self-deprecation'), false, '「如有疑问请联系客服」不该判成自我贬低')
+})
+
+test('中文层：marketing 语域命中绝对化（ERROR）', () => {
+  const r = scan('全网最低价，100%正品，限时抢购，错过再等一年！', { profile: 'marketing' })
+  const hit = r.hits.find((h) => h.ruleId === 'zh.marketing.hyperbole')
+  assert.ok(hit)
+  assert.equal(hit.severity, 'error')
+})
+
+test('中文层：tech 语域命中含糊性能描述（ERROR），chat 不命中', () => {
+  const text = '重构后性能得到明显提升，系统更加稳定。'
+  const tech = scan(text, { profile: 'tech' })
+  const chat = scan(text, { profile: 'chat' })
+  assert.ok(tech.hits.some((h) => h.ruleId === 'zh.tech.vague-performance' && h.severity === 'error'))
+  assert.equal(chat.hits.some((h) => h.ruleId === 'zh.tech.vague-performance'), false, '语域规则不该在 chat 生效')
+})
+
+test('中文层：locale=en 关闭，locale=zh 强制开启', () => {
+  const text = '特此通知。'
+  const off = scan(text, { profile: 'gov', locale: 'en' })
+  const on = scan(text, { profile: 'gov', locale: 'zh' })
+  assert.equal(off.locale, 'en')
+  assert.equal(off.zh, null, 'locale=en 时不应产出中文指标')
+  assert.equal(on.locale, 'zh')
+  assert.ok(on.zh !== null)
+})
+
+test('中文层：isZhText 阈值与英文本判定', () => {
+  assert.equal(isZhText('这是一段中文文本，用于测试。'), true)
+  assert.equal(isZhText('This is an English sentence only.'), false)
+  assert.equal(isZhText(''), false)
+})
+
+test('中文指标：逗号链 / 句长 / 的链 / 被字句', () => {
+  const m = zhMetrics('系统上线后，用户反馈良好，客服压力下降，运维成本降低，团队信心提升。')
+  assert.ok(m.commaChainMax >= 4, `逗号链应 >=4，实际 ${m.commaChainMax}`)
+  assert.ok(m.avgSentenceZh > 20)
+  const m2 = zhMetrics('那个部门的最新版本的报告被采纳了。')
+  assert.ok(m2.passiveBei >= 1)
+  assert.ok(m2.deChainMax >= 2, '的链应 >=2，实际 ' + m2.deChainMax)
+})
+
+test('中文密度：逗号链 ≥5 触发 WARN', () => {
+  const r = scan('第一，第二，第三，第四，第五，第六，结束。', { profile: 'report' })
+  assert.ok(r.hits.some((h) => h.ruleId === 'zh-density.comma-chain'), [...new Set(r.hits.map((h) => h.ruleId))].join(','))
+})
+
+test('中文规则表结构完整', () => {
+  const ids = ZH_RULES.map((r) => r.id)
+  assert.equal(new Set(ids).size, ids.length, '中文规则 id 重复')
+  assert.ok(ZH_RULES.length >= 20, `中文规则应 >=20，实际 ${ZH_RULES.length}`)
+  for (const r of ZH_RULES) {
+    for (const p of r.patterns) assert.doesNotThrow(() => new RegExp(p, 'giu'), `${r.id} 正则无法编译: ${p}`)
+    assert.ok(['info', 'warn', 'error'].includes(r.severity), `${r.id} severity 非法`)
+    assert.ok(['CUT', 'TIGHTEN', 'REFRAME', 'REVIEW'].includes(r.action), `${r.id} action 非法`)
+  }
+  for (const p of ZH_PROFILES) assert.ok(zhRulesFor(p).length > 0, `${p} 语域规则为空`)
+})
+
+test('中文规则按语域过滤：通用 profile 只跑无 scopes 的规则', () => {
+  const chat = zhRulesFor('chat')
+  const gov = zhRulesFor('gov')
+  assert.ok(chat.every((r) => !r.scopes || r.scopes.length === 0), 'chat 下不该出现语域专属规则')
+  assert.ok(gov.length > chat.length, 'gov 应比 chat 多出公文规则')
+})
+
+test('stats 带中文指标', () => {
+  const s = stats('这是一句话。这是第二句话。')
+  assert.ok(s.zh && typeof s.zh.zhRatio === 'number')
+})
+
+test('rulesBrief 输出中文语域层', () => {
+  const b = rulesBrief('gov')
+  assert.ok(b.zh && Array.isArray(b.zh.active))
+  assert.ok(b.zh.active.length >= 12, 'gov 下中文层应 >=12 条，实际 ' + b.zh.active.length)
+  assert.ok(Object.keys(b.zh.profiles).includes('gov'))
+})
+
 // ---- 汇总 ----
 const total = pass + failures.length
 if (failures.length) {

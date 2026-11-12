@@ -3,7 +3,7 @@
 // 退出码：0 干净（或在 WARN 预算内）；1 命中 ERROR 或超出 WARN 预算；2 用法/IO 错误
 import fs from 'node:fs'
 import path from 'node:path'
-import { scan, rewrite, conservation, stats, formatReport } from '../lib/rules.js'
+import { scan, rewrite, conservation, stats, formatReport, PROFILES } from '../lib/rules.js'
 
 const USAGE = `wd-lint — 防御性写作检查（零依赖，零网络）
 
@@ -15,7 +15,9 @@ const USAGE = `wd-lint — 防御性写作检查（零依赖，零网络）
   wd-lint --diff before.md after.md   守恒锁：对比两版，事实是否漂移
 
 选项:
-  -p, --profile <name>   chat|report|readme|email|academic|review|comment|unknown
+  -p, --profile <name>   通用: chat|report|readme|email|academic|comment|unknown
+                         中文语域: gov（公文）|tech（技术）|support（客服）|marketing（营销）|media（媒体）
+  -l, --locale <mode>    auto（默认，按中文占比自动开）|zh（强制）|en（关闭中文层）
   -m, --max-warn <n>     WARN 预算，超过即失败（默认不限）
   -s, --severity-min     info|warn|error（默认 error 才失败，报告仍全量输出）
       --stats            只输出指标
@@ -27,7 +29,7 @@ const USAGE = `wd-lint — 防御性写作检查（零依赖，零网络）
 `
 
 function parseArgs(argv) {
-  const o = { files: [], text: null, json: false, quiet: false, fix: false, diff: null, stats: false, profile: 'unknown', maxWarn: null, severityMin: 'info' }
+  const o = { files: [], text: null, json: false, quiet: false, fix: false, diff: null, stats: false, profile: 'unknown', locale: 'auto', maxWarn: null, severityMin: 'info' }
   for (let i = 0; i < argv.length; i++) {
     let a = argv[i]
     // 与 python 版一致：允许 -file 这种单横线写法
@@ -44,6 +46,10 @@ function parseArgs(argv) {
       case '-p':
       case '--profile':
         o.profile = argv[++i]
+        break
+      case '-l':
+      case '--locale':
+        o.locale = argv[++i]
         break
       case '-m':
       case '--max-warn':
@@ -157,7 +163,7 @@ for (const { label, text } of inputs) {
     else if (!o.quiet) console.log(`${label}: 字符 ${s.chars}｜中文 ${s.zhChars}｜英文 ${s.enWords}｜段 ${s.paragraphs}｜句 ${s.sentences}｜平均句长 ${s.avgSentence}｜对冲密度 ${s.hedgePer1000}‰`)
     continue
   }
-  const r = scan(text, { profile: o.profile, severityMin: o.severityMin, maxWarn: o.maxWarn })
+  const r = scan(text, { profile: o.profile, locale: o.locale, severityMin: o.severityMin, maxWarn: o.maxWarn })
   if (!r.ok) failed = true
   if (o.json) {
     reports.push({ label, ...r })
