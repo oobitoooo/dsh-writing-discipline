@@ -4,3 +4,23 @@ node_modules/
 .DS_Store
 coverage/
 .agent/
+
+# ── 个人数据：一律不进仓库 ────────────────────────────────
+# 文风基线（你自己稿子的统计量）
+baseline.json
+baseline-*.json
+*.baseline.json
+# 用户词表（你标记的误报/自选词）
+learned.json
+learned-*.json
+*.learned.json
+# 本地报告
+像不像你-*.html
+report-*.html
+# 改写备份
+*.bak
+*.orig
+
+# 临时/试验
+tmp/
+scratch/

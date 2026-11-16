@@ -104,6 +104,21 @@ await test('delivery 工具名判定', async () => {
 
 await fs.rm(dir, { recursive: true, force: true })
 
+await test('同步判定（guard 兜底）与异步判定一致：pdf 认源文件', async () => {
+  const gate = createGate({ mode: 'block' })
+  const d2 = await fs.mkdtemp(path.join(os.tmpdir(), 'wd-gate-sync-'))
+  const md = path.join(d2, 'sync.md')
+  const pdf = path.join(d2, 'sync.pdf')
+  await fs.writeFile(md, '同步判定正文', 'utf8')
+  await fs.writeFile(pdf, '%PDF-1.4 sync', 'utf8')
+  assert.ok(gate.inspectSync(pdf), '源文件未扫时同步判定应拒绝')
+  await gate.record(md, { error: 0, warn: 0, info: 0 }, 'report')
+  assert.equal(gate.inspectSync(pdf), null, '源文件通过后同步判定应放行')
+  assert.equal(gate.inspectSync(md), null)
+  await fs.unlink(md)
+  await fs.unlink(pdf)
+})
+
 if (failures.length) {
   for (const f of failures) {
     console.error(`✗ ${f.name}\n  ${f.error.message}`)
